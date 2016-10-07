@@ -1,0 +1,23 @@
+sudo: false # http://docs.travis-ci.com/user/migrating-from-legacy/
+
+services:
+  - redis-server
+
+addons:
+  code_climate:
+    repo_token: fef398071a8b9a86caa653c05372f91be29cd3d31548bd6f9950cb1c4f324ff6
+
+language: ruby
+
+rvm:
+  - 2.3.1
+  - 2.2.5
+
+env:
+  - >
+    REDIS_URL=redis://localhost:6379
+
+cache: bundler
+
+script:
+  - bundle exec rspec

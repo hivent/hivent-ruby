@@ -1,0 +1,19 @@
+engines:
+
+  # https://docs.codeclimate.com/v1.0/docs/duplication
+  duplication:
+    enabled: true
+    config:
+      languages:
+      - ruby
+
+  # https://docs.codeclimate.com/v1.0/docs/rubocop
+  # rubocop:
+  #   enabled: true
+
+exclude_paths:
+- spec/**/*
+
+ratings:
+  paths:
+  - lib/**/*

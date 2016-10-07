@@ -1,0 +1,14 @@
+# Ignore bundler config.
+/.bundle
+
+# Ignore local rspec config.
+/.rspec-local
+
+# simplecov configuration
+/.simplecov
+
+# rpsec's code coverage.
+/coverage
+
+# Ignore Gemfile.lock
+/Gemfile.lock
