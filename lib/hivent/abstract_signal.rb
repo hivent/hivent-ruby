@@ -8,7 +8,7 @@ module Hivent
     def initialize(name)
       @name        = name
       @producer    = nil
-      @client_id   = Hivent.config.client_id
+      @client_id   = Hivent::Config.client_id
     end
 
     def emit(payload, version:, cid: nil, key: nil)

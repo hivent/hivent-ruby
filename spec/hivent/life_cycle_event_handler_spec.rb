@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 require "spec_helper"
 
-describe Hivent::Redis::LifeCycleEventHandler do
+describe Hivent::LifeCycleEventHandler do
 
   subject { silence { consumer.run! } }
 
   let(:consumer) { Hivent::CLI::Consumer.new(require: require_file) }
-  let(:require_file) { File.expand_path("../../../fixtures/cli/life_cyle_event_test.rb", __FILE__) }
+  let(:require_file) { File.expand_path("../../fixtures/cli/life_cycle_event_test.rb", __FILE__) }
   let(:redis_consumer_double) { double("Hivent::Redis::Consumer").as_null_object }
 
   let(:redis) { Redis.new(url: REDIS_URL) }

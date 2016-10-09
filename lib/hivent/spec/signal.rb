@@ -38,7 +38,7 @@ module Hivent
       private
 
       def life_cycle_event_handler
-        Hivent.config.redis_life_cycle_event_handler
+        Hivent::Config.life_cycle_event_handler
       end
 
       def report_success(name, version, message)

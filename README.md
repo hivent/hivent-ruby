@@ -8,12 +8,11 @@ An event stream implementation that aggregates facts about your application.
 
 ```ruby
 Hivent.configure do |config|
-  config.backend :redis
-  config.redis_endpoint "redis://localhost:6379/0"    # Redis endpoint
-  config.partition_count 4                      # number of partions this application (identified by client_id)
-                                                      # should read from
-  config.redis_life_cycle_event_handler MyHandler.new # handler for consumption life cycle events
-  config.client_id "my_app_name"                      # unique identifier for this application
+  config.backend                  = :redis
+  config.endpoint                 = "redis://localhost:6379/0"
+  config.partition_count          = 4                  
+  config.life_cycle_event_handler = MyHandler.new
+  config.client_id                = "my_app_name"               
 end
 ```
 
@@ -57,21 +56,21 @@ signal.receive do |event|
 end
 ```
 
-#### Using with a Redis Backend
+#### Worker process
 
-To receive events using the Redis backend a consumer process needs to be started using the provided CLI.
+To receive events, a consumer process needs to be started using the provided CLI.
 
 Start the consumer:
 
 ```bash
-bundle exec hivent-receiver start -r app/events.rb
+bundle exec hivent start -r app/events.rb
 ```
 
 For more details on the available options see:
 
 ```bash
-bundle exec hivent-receiver --help
-bundle exec hivent-receiver start --help
+bundle exec hivent --help
+bundle exec hivent start --help
 ```
 
 ##### Daemonization
@@ -80,7 +79,7 @@ The library does not offer any options to daemonize or parallelize your consumer
 With these two tools, you can set up a `Procfile` for the consumer:
 
 ```
-consumer: bundle exec hivent-receiver start -r app/events.rb
+consumer: bundle exec hivent start -r app/events.rb
 ```
 
 And then use Foreman's `export` feature to convert it to an upstart job:
@@ -102,10 +101,10 @@ REDIS_URL=redis://something:6379
 ##### Callbacks for Life Cycle Events
 
 To add error reporting or logging of consumed events you can configure an handler that is invoked by the consumer when certain lifecycle events occur.
-To implement this handler create a class that inherits from [`Hivent::Redis::LifeCycleEventHandler`](lib/hivent/redis/life_cycle_event_handler.rb) and overwrite one or more of it's methods.
+To implement this handler create a class that inherits from [`Hivent::LifeCycleEventHandler`](lib/hivent/life_cycle_event_handler.rb) and overwrite one or more of it's methods.
 
 ```ruby
-class MyHandler < Hivent::Redis::LifeCycleEventHandler
+class MyHandler < Hivent::LifeCycleEventHandler
 
   def application_registered(client_id, events, partition_count)
     # log info to logging service
@@ -152,16 +151,7 @@ Hivent::Signal.new("model_name:created").emit({ key: "value" }, version: 1, cid:
 
 #### Keyed Messages
 
-Sometimes it's required to pass a key alongside the message that is used to assign the message to a specific partition / shard (which ensures order of events within this partition).
-
-The key can be defined in two different ways. Either by passing a key pattern when the signal is created:
-
-```ruby
-signal = Hivent::Signal.new("model_name:created", ["constant_string", :key_in_payload])
-signal.emit({ key_in_payload: "value" })
-```
-
-or by passing the key when emitting the message (the key pattern will be ignored in this case):
+Sometimes it's required to pass a key alongside the message that is used to assign the message to a specific partition (which ensures order of events within this partition).
 
 ```ruby
 signal = Hivent::Signal.new("model_name:created")

@@ -6,11 +6,11 @@ describe Hivent::CLI::Consumer do
   let(:consumer) { Hivent::CLI::Consumer.new(options) }
   let(:options) { {} }
 
-  let(:life_cycle_event_handler) { double("Hivent::Redis::LifeCycleEventHandler").as_null_object }
+  let(:life_cycle_event_handler) { double("Hivent::LifeCycleEventHandler").as_null_object }
   let(:require_file) { File.expand_path("../../../fixtures/cli/bootstrap_consumers.rb", __FILE__) }
 
   before :each do
-    allow(Hivent::Redis::LifeCycleEventHandler).to receive(:new).and_return(life_cycle_event_handler)
+    allow(Hivent::Config).to receive(:life_cycle_event_handler).and_return(life_cycle_event_handler)
   end
 
   describe "#run!" do
@@ -44,9 +44,10 @@ describe Hivent::CLI::Consumer do
       }.from([]).to([service_name, service_name])
     end
 
-    it "notifies life cycle event handler about registration of events" do
+    it "notifies the life cycle event handler about registration of events" do
       events = [{ name: "my:event", version: 1 }, { name: "my:event2" }]
       Hivent.emitter.events.push(*events)
+
       expect(life_cycle_event_handler).to receive(:application_registered).with(service_name, events, partition_count)
       subject
     end

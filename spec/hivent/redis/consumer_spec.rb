@@ -7,7 +7,7 @@ describe Hivent::Redis::Consumer do
   let(:redis)            { Redis.new(url: REDIS_URL) }
   let(:service_name)     { "a_service" }
   let(:consumer_name)    { "a_consumer" }
-  let(:life_cycle_event_handler) { double("Hivent::Redis::LifeCycleEventHandler").as_null_object }
+  let(:life_cycle_event_handler) { double("Hivent::LifeCycleEventHandler").as_null_object }
 
   after :each do
     redis.flushall

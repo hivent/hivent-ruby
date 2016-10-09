@@ -13,8 +13,8 @@ describe Hivent::Redis::Signal do
 
   before :each do
     Hivent.configure do |config|
-      config.backend :redis
-      config.client_id client_id
+      config.backend   = :redis
+      config.client_id = client_id
     end
   end
 
