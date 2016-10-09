@@ -1,0 +1,5 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+require_relative "../lib/hivent/cli/runner"
+
+Hivent::CLI::Runner.new(ARGV.dup).run

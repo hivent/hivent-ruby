@@ -4,9 +4,9 @@ require 'simplecov'
 require 'rspec/its'
 require 'pry'
 
-require 'collectif'
-require 'collectif/rspec'
-require 'collectif/cli/runner'
+require 'hivent'
+require 'hivent/rspec'
+require 'hivent/cli/runner'
 
 if ENV['CODECLIMATE_REPO_TOKEN']
   require 'codeclimate-test-reporter'
@@ -21,7 +21,7 @@ RSpec.configure do |config|
   config.include STDOUTHelpers
 
   config.after :each do
-    Collectif.configure {}
-    Collectif::Redis.class_variable_set(:@@redis, nil)
+    Hivent.configure {}
+    Hivent::Redis.class_variable_set(:@@redis, nil)
   end
 end

@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 require 'spec_helper'
 
-describe Collectif::Spec::Matchers do
+describe Hivent::Spec::Matchers do
 
   subject do
-    Collectif::Spec::Signal.new(signal).emit(payload, version: version, cid: cid)
+    Hivent::Spec::Signal.new(signal).emit(payload, version: version, cid: cid)
   end
 
   let(:signal)      { 'my:signal' }
@@ -48,9 +48,9 @@ describe Collectif::Spec::Matchers do
 
     context 'when the subject emits multiple signals' do
       subject do
-        Collectif::Spec::Signal.new(signal).emit({ bar: 'baz' }, version: version)
-        Collectif::Spec::Signal.new(signal).emit(payload, version: version)
-        Collectif::Spec::Signal.new(signal).emit({ foo: 'other' }, version: version)
+        Hivent::Spec::Signal.new(signal).emit({ bar: 'baz' }, version: version)
+        Hivent::Spec::Signal.new(signal).emit(payload, version: version)
+        Hivent::Spec::Signal.new(signal).emit({ foo: 'other' }, version: version)
       end
 
       it 'checks if an event was emitted' do

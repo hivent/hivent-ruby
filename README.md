@@ -1,4 +1,4 @@
-# Collectif
+# Hivent
 
 An event stream implementation that aggregates facts about your application.
 
@@ -7,7 +7,7 @@ An event stream implementation that aggregates facts about your application.
 ### Redis Backend
 
 ```ruby
-Collectif.configure do |config|
+Hivent.configure do |config|
   config.backend :redis
   config.redis_endpoint "redis://localhost:6379/0"    # Redis endpoint
   config.partition_count 4                      # number of partions this application (identified by client_id)
@@ -25,7 +25,7 @@ Receiving works on an instance of a `Signal`. For each event received, the given
 You may either specify a version to receive or decide to receive all events for that signal regardless of their version.
 
 ```ruby
-signal = Collectif::Signal.new("model_name:created")
+signal = Hivent::Signal.new("model_name:created")
 
 # Handle all events for this signal
 signal.receive do |event|
@@ -47,7 +47,7 @@ end
 You can receive all events as well by using the `*` wildcard. Partial wildcards (such as `my_event:*`) are not supported at this time.
 
 ```ruby
-signal = Collectif::Signal.new("*")
+signal = Hivent::Signal.new("*")
 
 # Handle all events
 signal.receive do |event|
@@ -64,14 +64,14 @@ To receive events using the Redis backend a consumer process needs to be started
 Start the consumer:
 
 ```bash
-bundle exec collectif-receiver start -r app/events.rb
+bundle exec hivent-receiver start -r app/events.rb
 ```
 
 For more details on the available options see:
 
 ```bash
-bundle exec collectif-receiver --help
-bundle exec collectif-receiver start --help
+bundle exec hivent-receiver --help
+bundle exec hivent-receiver start --help
 ```
 
 ##### Daemonization
@@ -80,7 +80,7 @@ The library does not offer any options to daemonize or parallelize your consumer
 With these two tools, you can set up a `Procfile` for the consumer:
 
 ```
-consumer: bundle exec collectif-receiver start -r app/events.rb
+consumer: bundle exec hivent-receiver start -r app/events.rb
 ```
 
 And then use Foreman's `export` feature to convert it to an upstart job:
@@ -102,10 +102,10 @@ REDIS_URL=redis://something:6379
 ##### Callbacks for Life Cycle Events
 
 To add error reporting or logging of consumed events you can configure an handler that is invoked by the consumer when certain lifecycle events occur.
-To implement this handler create a class that inherits from [`Collectif::Redis::LifeCycleEventHandler`](lib/collectif/redis/life_cycle_event_handler.rb) and overwrite one or more of it's methods.
+To implement this handler create a class that inherits from [`Hivent::Redis::LifeCycleEventHandler`](lib/hivent/redis/life_cycle_event_handler.rb) and overwrite one or more of it's methods.
 
 ```ruby
-class MyHandler < Collectif::Redis::LifeCycleEventHandler
+class MyHandler < Hivent::Redis::LifeCycleEventHandler
 
   def application_registered(client_id, events, partition_count)
     # log info to logging service
@@ -131,7 +131,7 @@ You can use any name to identify your signals.
 All signals are versioned. The version has to be specified as the second parameter of `emit` and will be part of the events meta data.
 
 ```ruby
-Collectif::Signal.new("model_name:created").emit({ key: "value" }, version: 1)
+Hivent::Signal.new("model_name:created").emit({ key: "value" }, version: 1)
 # => Signal name is added as meta attribute "name"
 ```
 
@@ -147,7 +147,7 @@ To pass in a correlation ID (e.g. from a previously consumed message) use:
 
 ```ruby
 cid = event['meta']['cid']
-Collectif::Signal.new("model_name:created").emit({ key: "value" }, version: 1, cid: cid)
+Hivent::Signal.new("model_name:created").emit({ key: "value" }, version: 1, cid: cid)
 ```
 
 #### Keyed Messages
@@ -157,14 +157,14 @@ Sometimes it's required to pass a key alongside the message that is used to assi
 The key can be defined in two different ways. Either by passing a key pattern when the signal is created:
 
 ```ruby
-signal = Collectif::Signal.new("model_name:created", ["constant_string", :key_in_payload])
+signal = Hivent::Signal.new("model_name:created", ["constant_string", :key_in_payload])
 signal.emit({ key_in_payload: "value" })
 ```
 
 or by passing the key when emitting the message (the key pattern will be ignored in this case):
 
 ```ruby
-signal = Collectif::Signal.new("model_name:created")
+signal = Hivent::Signal.new("model_name:created")
 signal.emit({ key: "value" }, key: "my_custom_key")
 ```
 
@@ -178,12 +178,12 @@ REDIS_URL=redis://path_to_redis:port/database bundle exec rspec
 
 ## Test Helpers
 
-To help you write awesome tests, an RSpec helper is provided. To use it, require 'collectif/rspec' before running your test suite:
+To help you write awesome tests, an RSpec helper is provided. To use it, require 'hivent/rspec' before running your test suite:
 
 ```ruby
 # in spec_helper.rb
 
-require 'collectif/rspec'
+require 'hivent/rspec'
 ```
 
 ### Matchers
