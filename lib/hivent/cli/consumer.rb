@@ -34,10 +34,10 @@ module Hivent
         # use load instead of require to allow multiple runs of this method in specs
         load @options[:require]
 
-        @service_name             = Hivent.config.client_id
-        @partition_count          = Hivent.config.partition_count
-        @life_cycle_event_handler = Hivent.config.redis_life_cycle_event_handler ||
-                                      Hivent::Redis::LifeCycleEventHandler.new
+        @service_name             = Hivent::Config.client_id
+        @partition_count          = Hivent::Config.partition_count
+        @life_cycle_event_handler = Hivent::Config.life_cycle_event_handler ||
+                                      Hivent::LifeCycleEventHandler.new
         @events                   = Hivent.emitter.events
         @redis                    = Hivent::Redis.redis
       end

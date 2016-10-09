@@ -40,8 +40,8 @@ describe Hivent::Spec::Signal do
     context "with a Redis backend" do
       before :each do
         Hivent.configure do |config|
-          config.backend :redis
-          config.redis_life_cycle_event_handler life_cycle_event_handler
+          config.backend                  = :redis
+          config.life_cycle_event_handler = life_cycle_event_handler
         end
       end
 

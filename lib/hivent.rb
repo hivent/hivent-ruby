@@ -5,6 +5,8 @@ require "retryable"
 require "json"
 require "event_emitter"
 
+require "hivent/config"
+
 require "hivent/signal"
 require "hivent/abstract_signal"
 require "hivent/emitter"
@@ -12,70 +14,19 @@ require "hivent/emitter"
 require "hivent/redis/redis"
 require "hivent/redis/extensions"
 require "hivent/redis/signal"
-
-require "hivent/redis/life_cycle_event_handler"
+require "hivent/life_cycle_event_handler"
 require "hivent/redis/consumer"
 
 module Hivent
 
-  SUPPORTED_BACKENDS = [:redis].freeze
+  extend self
 
-  def self.configure
-    @config = Config.new
-    yield @config
-  end
-
-  def self.config
-    @config || Config.new
+  def configure
+    block_given? ? yield(Hivent::Config) : Hivent::Config
   end
 
   def self.emitter
     @emitter ||= Emitter.new
-  end
-
-  class Config
-
-    class UnsupportedBackendError < StandardError; end
-
-    def initialize
-      @client_id  = nil
-      @middleware = {}
-    end
-
-    def backend(backend = nil)
-      if backend
-        raise UnsupportedBackendError unless SUPPORTED_BACKENDS.include?(backend.to_sym)
-        @backend = backend.to_sym
-      else
-        @backend || :null
-      end
-    end
-
-    def redis_endpoint(redis_endpoint = nil)
-      @redis_endpoint = redis_endpoint || @redis_endpoint
-    end
-
-    def partition_count(partition_count = nil)
-      @partition_count = partition_count || @partition_count
-    end
-
-    def redis_life_cycle_event_handler(redis_life_cycle_event_handler = nil)
-      @redis_life_cycle_event_handler = redis_life_cycle_event_handler || @redis_life_cycle_event_handler
-    end
-
-    def client_id(client_id = nil)
-      @client_id = client_id || @client_id
-    end
-
-    def to_hash
-      {
-        client_id:       client_id,
-        backend:         backend,
-        redis_endpoint:  redis_endpoint,
-        partition_count: partition_count
-      }
-    end
-
   end
 
 end
