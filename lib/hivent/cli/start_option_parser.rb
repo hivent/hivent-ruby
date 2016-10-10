@@ -20,10 +20,6 @@ module Hivent
           o.on('-r', '--require PATH', 'File to require to bootstrap consumers') do |arg|
             @options[:require] = arg
           end
-
-          o.on('-p', '--pid-dir DIR', 'Location of worker pid files') do |arg|
-            @options[:pid_dir] = arg
-          end
         end
 
         parser.parse(@argv)
