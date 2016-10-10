@@ -36,6 +36,7 @@ module Hivent
         to_process = items
 
         to_process.each do |(queue, item)|
+          @redis.rpop(queue)
           payload = nil
           begin
             payload = JSON.parse(item).with_indifferent_access
@@ -48,8 +49,6 @@ module Hivent
 
             @life_cycle_event_handler.event_processing_failed(e, payload, item, dead_letter_queue_name(queue))
           end
-
-          @redis.rpop(queue)
         end
 
         Kernel.sleep(SLEEP_TIME.to_f / 1000) if to_process.empty?
