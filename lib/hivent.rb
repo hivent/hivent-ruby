@@ -3,7 +3,7 @@ require "active_support"
 require "active_support/core_ext"
 require "retryable"
 require "json"
-require "event_emitter"
+require "emittr"
 
 require "hivent/config"
 

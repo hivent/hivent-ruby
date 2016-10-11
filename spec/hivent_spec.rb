@@ -83,7 +83,7 @@ describe Hivent do
     let(:increase)  { 5 }
 
     after :each do
-      Hivent.emitter.remove_listener "my_signal:1"
+      Hivent.emitter.off "my_signal:1"
     end
 
     it "consumes events" do
