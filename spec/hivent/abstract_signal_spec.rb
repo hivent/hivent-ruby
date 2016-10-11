@@ -83,7 +83,7 @@ describe Hivent::AbstractSignal do
 
   describe "#receive" do
     after :each do
-      Hivent.emitter.remove_listener name
+      Hivent.emitter.off name
       Hivent.emitter.events.clear
     end
 

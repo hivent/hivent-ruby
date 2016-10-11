@@ -3,7 +3,7 @@ module Hivent
 
   class Emitter
 
-    include EventEmitter
+    include Emittr::Events
     attr_accessor :events
 
     WILDCARD = :all
@@ -16,6 +16,10 @@ module Hivent
       emittable_event_names(payload.with_indifferent_access).each do |emittable_event_name|
         emit(emittable_event_name, payload)
       end
+    end
+
+    def emit(name, *data)
+      super(name.to_sym, *data)
     end
 
     private

@@ -12,7 +12,7 @@ describe Hivent::Redis::Consumer do
   after :each do
     redis.flushall
 
-    Hivent.emitter.__events.clear
+    Hivent.emitter.off
   end
 
   describe "#queues" do
