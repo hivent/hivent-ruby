@@ -32,4 +32,6 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "simplecov", "~> 0.12"
   spec.add_development_dependency "codeclimate-test-reporter", "~> 0.6"
   spec.add_development_dependency "rubocop", "~> 0.43"
+  spec.add_development_dependency "gem-release", "~> 0.7"
+  spec.add_development_dependency "rake", "~> 11.3"
 end
