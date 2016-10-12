@@ -8,6 +8,7 @@ module Hivent
       include Hivent::Redis::Extensions
 
       LUA_CONSUMER = File.expand_path("../lua/consumer.lua", __FILE__)
+      LUA_HEARTBEAT = File.expand_path("../lua/heartbeat.lua", __FILE__)
       # In milliseconds
       SLEEP_TIME   = 200
       CONSUMER_TTL = 1000
@@ -21,22 +22,23 @@ module Hivent
       end
 
       def run!
+        start_heartbeat!
         consume while !@stop
       end
 
       def stop!
         @stop = true
+        stop_heartbeat!
       end
 
       def queues
-        script(LUA_CONSUMER, @service_name, @name, CONSUMER_TTL)
+        script(LUA_CONSUMER, @service_name, @name, CONSUMER_TTL) || []
       end
 
       def consume
         to_process = items
 
         to_process.each do |(queue, item)|
-          @redis.rpop(queue)
           payload = nil
           begin
             payload = JSON.parse(item).with_indifferent_access
@@ -48,6 +50,8 @@ module Hivent
             @redis.lpush(dead_letter_queue_name(queue), item)
 
             @life_cycle_event_handler.event_processing_failed(e, payload, item, dead_letter_queue_name(queue))
+          ensure
+            @redis.rpop(queue)
           end
         end
 
@@ -55,6 +59,26 @@ module Hivent
       end
 
       private
+
+      def start_heartbeat!
+        stop_heartbeat!
+
+        @heartbeat = Thread.new do
+          loop do
+            heartbeat!
+
+            Kernel.sleep(SLEEP_TIME.to_f / 1000)
+          end
+        end
+      end
+
+      def stop_heartbeat!
+        @heartbeat.exit if @heartbeat.present?
+      end
+
+      def heartbeat!
+        script(LUA_HEARTBEAT, @service_name, @name, CONSUMER_TTL)
+      end
 
       def items
         queues
