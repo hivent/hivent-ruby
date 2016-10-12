@@ -50,25 +50,6 @@ local function table_eq(table1, table2)
  return recurse(table1, table2)
 end
 
-local function keepalive(service, consumer)
-  redis.call("SET", service .. ":" .. consumer .. ":alive", "true", "PX", CONSUMER_TTL)
-  redis.call("SADD", service .. ":consumers", consumer)
-end
-
-local function cleanup(service)
-  local consumer_index_key = service .. ":consumers"
-  local consumers = redis.call("SMEMBERS", consumer_index_key)
-
-  for _, consumer in ipairs(consumers) do
-    local consumer_status_key = service .. ":" .. consumer .. ":alive"
-    local alive = redis.call("GET", consumer_status_key)
-
-    if not alive then
-      redis.call("SREM", consumer_index_key, consumer)
-    end
-  end
-end
-
 local function distribute(consumers, partition_count)
   local distribution   = {}
   local consumer_count = table.getn(consumers)
@@ -163,17 +144,4 @@ local function rebalance(service_name, consumer_name)
   end
 end
 
-local function heartbeat(service_name, consumer_name)
-  -- keep consumer alive
-  keepalive(service_name, consumer_name)
-
-  -- clean up dead consumers
-  cleanup(service_name)
-
-  -- rebalance
-  local new_config = rebalance(service_name, consumer_name)
-
-  return new_config
-end
-
-return heartbeat(service_name, consumer_name)
+return rebalance(service_name, consumer_name)

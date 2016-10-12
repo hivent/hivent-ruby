@@ -2,6 +2,7 @@
 require 'simplecov'
 
 require 'rspec/its'
+require 'rspec/eventually'
 require 'pry'
 
 require 'hivent'

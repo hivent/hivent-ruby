@@ -1,4 +1,3 @@
-# frozen_string_literal: true
 require "spec_helper"
 
 describe Hivent::Redis::Consumer do
@@ -7,12 +6,19 @@ describe Hivent::Redis::Consumer do
   let(:redis)            { Redis.new(url: REDIS_URL) }
   let(:service_name)     { "a_service" }
   let(:consumer_name)    { "a_consumer" }
-  let(:life_cycle_event_handler) { double("Hivent::LifeCycleEventHandler").as_null_object }
+  let(:life_cycle_event_handler) { double("Hivent::Redis::LifeCycleEventHandler").as_null_object }
+
+  before :each do
+    stub_const("#{described_class}::CONSUMER_TTL", 1000)
+  end
 
   after :each do
+    Hivent.emitter.off
     redis.flushall
 
-    Hivent.emitter.off
+    Thread.list.each do |thread|
+      thread.exit unless thread == Thread.current
+    end
   end
 
   describe "#queues" do
@@ -20,8 +26,8 @@ describe Hivent::Redis::Consumer do
       # 1. Marks every consumer as "alive"
       # 2. Resets every consumer
       # 3. Distributes partitions evenly
-      3.times do
-        consumers.each(&:queues)
+      consumers.map do |consumer|
+        Thread.new { consumer.run! }
       end
     end
 
@@ -34,8 +40,13 @@ describe Hivent::Redis::Consumer do
 
       let(:partition_count) { 2 }
 
+      before :each do
+        Thread.new { consumer.run! }
+        sleep 0.1
+      end
+
       it "returns all available partitions" do
-        expect(subject.length).to eq(partition_count)
+        expect { subject.length }.to eventually eq(partition_count)
       end
     end
 
@@ -48,89 +59,78 @@ describe Hivent::Redis::Consumer do
         before :each do
           # Hearbeat from first consumer,
           # marking it as "alive"
-          consumer1.queues
+          Thread.new { consumer1.run! }
+          sleep 0.1
         end
 
         it "assigns all available partitions to the living consumer" do
-          distribution = [consumer1.queues, consumer2.queues]
-
-          expect(distribution.map(&:length)).to eq([2, 0])
+          expect { [consumer1.queues, consumer2.queues].map(&:length) }.to eventually eq([2, 0])
         end
 
         describe "balancing" do
-          it "resets the first consumer for rebalancing" do
-            # Marks consumer 1 as alive, assigning all partitions
-            consumer1.queues
-            # Marks consumer 2 as alive, assigning 0 partitions to
-            # start rebalancing
-            consumer2.queues
-
-            # Assigns 0 partitions to finish resetting
-            expect(consumer1.queues.length).to eq(0)
-          end
-
           it "assigns half the partitions after reset" do
+            threads = []
             # Fully resets
-            consumer1.queues
-            consumer2.queues
-            consumer1.queues
+            threads << Thread.new { consumer1.run! }
+            sleep 0.1
+            threads << Thread.new { consumer2.run! }
+            sleep 0.1
 
             # Distributes partitions across consumers
-            expect(consumer2.queues.length).to eq(1)
+            expect { consumer2.queues.length }.to eventually eq(1)
           end
 
           it "rebalances partitions across both consumers" do
-            consumer1.queues
-            consumer2.queues
-            consumer1.queues
-            consumer2.queues
+            threads = []
+
+            threads << Thread.new { consumer1.run! }
+            sleep 0.1
+            threads << Thread.new { consumer2.run! }
+            sleep 0.1
+
+            Thread.new { consumer1.stop! }
+            Thread.new { consumer2.stop! }
+            sleep 0.1
+
+            threads << Thread.new { consumer1.run! }
+            sleep 0.1
+            threads << Thread.new { consumer2.run! }
+            sleep 0.1
 
             # Distributes partitions across consumers
-            expect(consumer1.queues.length).to eq(1)
+            expect { consumer1.queues.length }.to eventually eq(1)
           end
 
           context "when one of the consumers dies" do
             before :each do
               stub_const("#{described_class}::CONSUMER_TTL", 50)
 
-              balance([consumer1, consumer2])
-              count = 0
+              threads = balance([consumer1, consumer2])
+              Thread.new { consumer1.stop! }
+              threads.first.exit
 
-              while count <= 2
-                consumer2.queues
-                count += 1
-
-                sleep described_class::CONSUMER_TTL.to_f / 1000
-              end
+              sleep described_class::CONSUMER_TTL.to_f / 1000
             end
 
             it "assigns those consumer's partitions to another consumer" do
-              expect(consumer2.queues.length).to eq(2)
+              expect { consumer2.queues.length }.to eventually eq(2)
             end
           end
         end
       end
 
       context "when both consumers are alive" do
-        subject do
-          [consumer1.queues, consumer2.queues]
-        end
-
         before :each do
           balance([consumer1, consumer2])
         end
 
         it "returns all available partitions" do
-          expect(subject.map(&:length)).to eq([1, 1])
+          expect { [consumer1.queues, consumer2.queues].map(&:length) }.to eventually eq([1, 1])
         end
       end
     end
 
     context "with more consumers than partitions" do
-      subject do
-        [consumer1.queues, consumer2.queues]
-      end
-
       let(:consumer1)       { described_class.new(redis, service_name, "#{consumer_name}1", life_cycle_event_handler) }
       let(:consumer2)       { described_class.new(redis, service_name, "#{consumer_name}2", life_cycle_event_handler) }
       let(:partition_count) { 1 }
@@ -140,7 +140,7 @@ describe Hivent::Redis::Consumer do
       end
 
       it "returns all available partitions" do
-        expect(subject.map(&:length)).to eq([1, 0])
+        expect { [consumer1.queues, consumer2.queues].map(&:length) }.to eventually eq([1, 0])
       end
     end
 
@@ -158,7 +158,7 @@ describe Hivent::Redis::Consumer do
       end
 
       it "returns all available partitions" do
-        expect(subject.map(&:length)).to eq([2, 1])
+        expect { [consumer1.queues, consumer2.queues].map(&:length) }.to eventually eq([2, 1])
       end
     end
 
@@ -184,10 +184,18 @@ describe Hivent::Redis::Consumer do
     let(:producer) { Hivent::Redis::Producer.new(redis) }
 
     before :each do
+      Thread.new { consumer.run! }
+      sleep 0.1
+
       redis.set("#{service_name}:partition_count", partition_count)
       redis.sadd(event[:meta][:name], service_name)
 
       producer.write(event[:meta][:name], event.to_json, 0)
+    end
+
+    after :each do
+      Thread.new { consumer.stop! }
+      sleep 0.1
     end
 
     context "when there are items ready to be consumed" do
@@ -300,24 +308,35 @@ describe Hivent::Redis::Consumer do
   end
 
   describe "#run!" do
-    subject { Thread.new { consumer.run! } }
-
     let(:partition_count) { 2 }
 
     before :each do
       redis.set("#{service_name}:partition_count", partition_count)
 
       allow(consumer).to receive(:consume)
+
+      stub_const("#{described_class}::CONSUMER_TTL", 10000)
     end
 
-    it "processes items" do
-      thread = subject
+    it "starts its heartbeat" do
+      thread = Thread.new { consumer.run! }
 
-      sleep 0.1
+      sleep 1
+
+      is_alive = redis.get("#{service_name}:#{consumer_name}:alive")
 
       thread.kill
 
+      expect(is_alive).to be
+    end
+
+    it "processes items" do
+      thread = Thread.new { consumer.run! }
+      sleep 0.2
+
       expect(consumer).to have_received(:consume).at_least(:once)
+
+      thread.kill
     end
 
   end
@@ -328,6 +347,22 @@ describe Hivent::Redis::Consumer do
 
     before :each do
       redis.set("#{service_name}:partition_count", partition_count)
+      stub_const("#{described_class}::CONSUMER_TTL", 10)
+    end
+
+    it "stops its heartbeat" do
+      thread = Thread.new do
+        consumer.run!
+      end
+
+      sleep 0.1
+
+      consumer.stop!
+      thread.kill
+
+      sleep 0.2
+
+      expect { redis.get("#{service_name}:#{consumer_name}:alive") }.to eventually be_nil
     end
 
     it "stops processing" do
@@ -338,6 +373,7 @@ describe Hivent::Redis::Consumer do
       sleep 0.1
 
       consumer.stop!
+      thread.kill
 
       # nil is returned if timeout expires
       expect(thread.join(2)).to eq(thread)
