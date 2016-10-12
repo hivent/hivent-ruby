@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 module Hivent
 
-  VERSION = File.read(File.expand_path('../../../.version', __FILE__)).strip.freeze
+  VERSION = "1.1.0".freeze
 
 end
