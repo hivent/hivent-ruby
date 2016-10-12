@@ -12,3 +12,6 @@
 
 # Ignore Gemfile.lock
 /Gemfile.lock
+
+# Ignore pkg dir where built gems are saved
+pkg
